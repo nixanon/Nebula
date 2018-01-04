@@ -4,9 +4,14 @@ using UnityEngine.Networking;
 public class PlayerHealth : NetworkBehaviour
 {
     [SerializeField] int maxHealth = 3;
+    
+    // hook = callback
+    // syncvar allows the client to be notified of changes,
+    // by the sever.
+    [SyncVar (hook="OnHealthChanged")] int health;
 
     Player player;
-    int health;
+    
 
     void Awake()
     {
@@ -38,7 +43,19 @@ public class PlayerHealth : NetworkBehaviour
     [ClientRpc]
     void RpcTakeDamage(bool died)
     {
+        if (isLocalPlayer)
+            PlayerCanvas.canvas.FlashDamageEffect();
+
         if (died)
             player.Die();
+    }
+
+    void OnHealthChanged(int value)
+    {
+        health = value;
+        if (isLocalPlayer)
+        {
+            PlayerCanvas.canvas.SetHealth(value);
+        }
     }
 }

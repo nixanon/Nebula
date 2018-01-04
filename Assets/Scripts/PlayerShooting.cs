@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.Networking;
+using UnityStandardAssets.CrossPlatformInput;
 
 public class PlayerShooting : NetworkBehaviour
 {
@@ -7,6 +8,11 @@ public class PlayerShooting : NetworkBehaviour
     [SerializeField] Transform firePosition;
     [SerializeField] ShotEffectsManager shotEffects;
 
+    // hook = callback
+    // syncvar allows the client to be notified of changes,
+    // by the sever.
+    [SyncVar(hook ="OnScoreChanged")] int score;
+    
     float ellapsedTime;
     bool canShoot;
 
@@ -17,6 +23,12 @@ public class PlayerShooting : NetworkBehaviour
         if (isLocalPlayer)
             canShoot = true;
     }
+    
+    [ServerCallback]
+    void OnEnable()
+    {
+        score = 0;
+    }
 
     void Update()
     {
@@ -25,7 +37,7 @@ public class PlayerShooting : NetworkBehaviour
 
         ellapsedTime += Time.deltaTime;
 
-        if (Input.GetButtonDown("Fire1") && ellapsedTime > shotCooldown)
+        if (CrossPlatformInputManager.GetButtonDown("Fire1") && ellapsedTime > shotCooldown)
         {
             ellapsedTime = 0f;
             CmdFireShot(firePosition.position, firePosition.forward);
@@ -47,7 +59,14 @@ public class PlayerShooting : NetworkBehaviour
             PlayerHealth enemy = hit.transform.GetComponent<PlayerHealth>();
 
             if (enemy != null)
-                enemy.TakeDamage();
+            {
+                
+                bool wasKillShot = enemy.TakeDamage();
+                if (wasKillShot)
+                    score += 10;
+                else
+                    score++;
+            }
         }
 
         RpcProcessShotEffects(result, hit.point);
@@ -60,5 +79,13 @@ public class PlayerShooting : NetworkBehaviour
 
         if (playImpact)
             shotEffects.PlayImpactEffect(point);
+    }
+
+    void OnScoreChanged(int value)
+    {
+        if (isLocalPlayer)
+        {
+            PlayerCanvas.canvas.SetKills(value);
+        }
     }
 }
