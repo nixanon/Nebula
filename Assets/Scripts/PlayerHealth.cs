@@ -24,6 +24,12 @@ public class PlayerHealth : NetworkBehaviour
         health = maxHealth;
     }
 
+    [ServerCallback ]
+    void Start()
+    {
+        health = maxHealth;
+    }
+
     [Server]
     public bool TakeDamage()
     {
