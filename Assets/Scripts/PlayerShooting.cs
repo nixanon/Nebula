@@ -1,29 +1,28 @@
 ﻿using UnityEngine;
 using UnityEngine.Networking;
-using UnityStandardAssets.CrossPlatformInput;
 
 public class PlayerShooting : NetworkBehaviour
 {
     [SerializeField] float shotCooldown = .3f;
+    [SerializeField] int killsToWin = 5;
     [SerializeField] Transform firePosition;
     [SerializeField] ShotEffectsManager shotEffects;
 
-    // hook = callback
-    // syncvar allows the client to be notified of changes,
-    // by the sever.
-    [SyncVar(hook ="OnScoreChanged")] int score;
-    
+    [SyncVar(hook = "OnScoreChanged")] int score;
+
+    Player player;
     float ellapsedTime;
     bool canShoot;
 
     void Start()
     {
+        player = GetComponent<Player>();
         shotEffects.Initialize();
 
         if (isLocalPlayer)
             canShoot = true;
     }
-    
+
     [ServerCallback]
     void OnEnable()
     {
@@ -37,7 +36,7 @@ public class PlayerShooting : NetworkBehaviour
 
         ellapsedTime += Time.deltaTime;
 
-        if (CrossPlatformInputManager.GetButtonDown("Fire1") && ellapsedTime > shotCooldown)
+        if (Input.GetButtonDown("Fire1") && ellapsedTime > shotCooldown)
         {
             ellapsedTime = 0f;
             CmdFireShot(firePosition.position, firePosition.forward);
@@ -50,7 +49,7 @@ public class PlayerShooting : NetworkBehaviour
         RaycastHit hit;
 
         Ray ray = new Ray(origin, direction);
-        Debug.DrawRay(ray.origin, ray.direction * 50f, Color.red, 20f);
+        Debug.DrawRay(ray.origin, ray.direction * 3f, Color.red, 1f);
 
         bool result = Physics.Raycast(ray, out hit, 50f);
 
@@ -60,12 +59,10 @@ public class PlayerShooting : NetworkBehaviour
 
             if (enemy != null)
             {
-                
                 bool wasKillShot = enemy.TakeDamage();
-                if (wasKillShot)
-                    score += 10;
-                else
-                    score++;
+
+                if (wasKillShot && ++score >= killsToWin)
+                    player.Won();
             }
         }
 
@@ -83,9 +80,13 @@ public class PlayerShooting : NetworkBehaviour
 
     void OnScoreChanged(int value)
     {
+        score = value;
         if (isLocalPlayer)
-        {
             PlayerCanvas.canvas.SetKills(value);
-        }
+    }
+
+    public void FireAsBot()
+    {
+        CmdFireShot(firePosition.position, firePosition.forward);
     }
 }

@@ -598,7 +598,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   fadeSpeed: 10
   groupToFade: {fileID: 225296703715642744}
-  startVisible: 0
+  startVisible: 1
   startWithFade: 0
 --- !u!114 &114517284436393214
 MonoBehaviour:
